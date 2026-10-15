@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Embeddable "today's games" widget.
+  Sports API on RapidAPI: https://rapidapi.com/belchiorarkad-FqvHs2EDOtP/api/sports-information
+
+  For local testing only: in production, call the API from your own backend
+  so your RapidAPI key is never exposed in the browser.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Today's games widget · Sports API</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f6f8; margin: 0; padding: 16px; }
+    .widget { max-width: 420px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px #0001; padding: 12px 16px; }
+    h2 { font-size: 16px; margin: 4px 0 12px; }
+    .game { display: grid; grid-template-columns: 1fr auto; padding: 8px 0; border-top: 1px solid #eee; font-size: 14px; }
+    .status { color: #666; font-size: 12px; grid-column: 1 / -1; }
+    .live { color: #d33; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="widget">
+    <h2>Today's games</h2>
+    <div id="games">Loading…</div>
+  </div>
+  <script>
+    const KEY = 'YOUR_RAPIDAPI_KEY';           // demo only; proxy through your backend in production
+    const LEAGUES = 'nba,nfl,mlb,nhl';
+    const HOST = 'sports-information.p.rapidapi.com';
+
+    async function load() {
+      const res = await fetch(`https://${HOST}/today?leagues=${LEAGUES}`, {
+        headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST },
+      });
+      const body = await res.json();
+      const box = document.getElementById('games');
+      if (!body.success) { box.textContent = body.message; return; }
+      const list = Array.isArray(body.data) ? body.data : (body.data.events || body.data.games || []);
+      const name = s => (s && s.team && (s.team.abbreviation || s.team.displayName)) || '?';
+      box.innerHTML = list.map(g => `
+        <div class="game">
+          <span>${name(g.away)} @ ${name(g.home)}</span>
+          <strong>${g.away?.score ?? ''}${g.home?.score != null ? ' – ' + g.home.score : ''}</strong>
+          <span class="status ${g.status?.state === 'in' ? 'live' : ''}">${g.status?.detail ?? ''}</span>
+        </div>`).join('') || 'No games today.';
+    }
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>
